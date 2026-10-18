@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_ObiegFaktur"
+                  targetNamespace="http://example.com/obieg-faktur">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Firma" name="Obieg faktur kosztowych" processRef="Process_ObiegFaktur" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_ObiegFaktur" name="Obieg faktur kosztowych" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Ksiegowosc" name="Księgowość">
+        <bpmn:flowNodeRef>Start_Faktura</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Rejestracja</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Kompletne</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Wyjasnienie</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Zwrot</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Odrzucona</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Ksiegowanie</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Zaksiegowana</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Kierownik" name="Kierownik MPK (lub zastępca)">
+        <bpmn:flowNodeRef>Task_AkceptacjaKierownika</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Timer_3Dni</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Przypomnienie</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Przypomnienie</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DecyzjaKierownika</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Kwota</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Dyrektor" name="Dyrektor finansowy">
+        <bpmn:flowNodeRef>Task_AkceptacjaDyrektora</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DecyzjaDyrektora</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="Start_Faktura" name="Faktura wpłynęła">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_Rejestracja" name="Rejestracja faktury">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:incoming>Flow_Poprawiona</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Kompletne" name="Dane kompletne, brak duplikatu?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Braki</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Kompletne</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_Wyjasnienie" name="Wyjaśnienie braków z dostawcą">
+      <bpmn:incoming>Flow_Braki</bpmn:incoming>
+      <bpmn:outgoing>Flow_Poprawiona</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_AkceptacjaKierownika" name="Akceptacja merytoryczna">
+      <bpmn:incoming>Flow_Kompletne</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:boundaryEvent id="Timer_3Dni" name="3 dni bez decyzji" cancelActivity="false" attachedToRef="Task_AkceptacjaKierownika">
+      <bpmn:outgoing>Flow_Timer</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_1">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P3D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sendTask id="Task_Przypomnienie" name="Przypomnienie do akceptującego i księgowości">
+      <bpmn:incoming>Flow_Timer</bpmn:incoming>
+      <bpmn:outgoing>Flow_PoPrzypomnieniu</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="End_Przypomnienie" name="Przypomnienie wysłane">
+      <bpmn:incoming>Flow_PoPrzypomnieniu</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_DecyzjaKierownika" name="Decyzja?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_KierOdrzucil</bpmn:outgoing>
+      <bpmn:outgoing>Flow_KierZatwierdzil</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:exclusiveGateway id="Gateway_Kwota" name="Kwota brutto &gt; 5000 zł?">
+      <bpmn:incoming>Flow_KierZatwierdzil</bpmn:incoming>
+      <bpmn:outgoing>Flow_PowyzejProgu</bpmn:outgoing>
+      <bpmn:outgoing>Flow_PonizejProgu</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_AkceptacjaDyrektora" name="Akceptacja finansowa">
+      <bpmn:incoming>Flow_PowyzejProgu</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_DecyzjaDyrektora" name="Decyzja?">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_DyrZatwierdzil</bpmn:outgoing>
+      <bpmn:outgoing>Flow_DyrOdrzucil</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_Zwrot" name="Zwrot do dostawcy / archiwizacja">
+      <bpmn:incoming>Flow_KierOdrzucil</bpmn:incoming>
+      <bpmn:incoming>Flow_DyrOdrzucil</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="End_Odrzucona" name="Faktura odrzucona">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:userTask id="Task_Ksiegowanie" name="Księgowanie i przekazanie do płatności">
+      <bpmn:incoming>Flow_PonizejProgu</bpmn:incoming>
+      <bpmn:incoming>Flow_DyrZatwierdzil</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="End_Zaksiegowana" name="Faktura zaksięgowana">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_Faktura" targetRef="Task_Rejestracja" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Rejestracja" targetRef="Gateway_Kompletne" />
+    <bpmn:sequenceFlow id="Flow_Braki" name="Nie" sourceRef="Gateway_Kompletne" targetRef="Task_Wyjasnienie" />
+    <bpmn:sequenceFlow id="Flow_Poprawiona" name="Uzupełniono" sourceRef="Task_Wyjasnienie" targetRef="Task_Rejestracja" />
+    <bpmn:sequenceFlow id="Flow_Kompletne" name="Tak" sourceRef="Gateway_Kompletne" targetRef="Task_AkceptacjaKierownika" />
+    <bpmn:sequenceFlow id="Flow_Timer" sourceRef="Timer_3Dni" targetRef="Task_Przypomnienie" />
+    <bpmn:sequenceFlow id="Flow_PoPrzypomnieniu" sourceRef="Task_Przypomnienie" targetRef="End_Przypomnienie" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_AkceptacjaKierownika" targetRef="Gateway_DecyzjaKierownika" />
+    <bpmn:sequenceFlow id="Flow_KierOdrzucil" name="Odrzucona" sourceRef="Gateway_DecyzjaKierownika" targetRef="Task_Zwrot" />
+    <bpmn:sequenceFlow id="Flow_KierZatwierdzil" name="Zatwierdzona" sourceRef="Gateway_DecyzjaKierownika" targetRef="Gateway_Kwota" />
+    <bpmn:sequenceFlow id="Flow_PowyzejProgu" name="Tak" sourceRef="Gateway_Kwota" targetRef="Task_AkceptacjaDyrektora" />
+    <bpmn:sequenceFlow id="Flow_PonizejProgu" name="Nie" sourceRef="Gateway_Kwota" targetRef="Task_Ksiegowanie" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_AkceptacjaDyrektora" targetRef="Gateway_DecyzjaDyrektora" />
+    <bpmn:sequenceFlow id="Flow_DyrZatwierdzil" name="Zatwierdzona" sourceRef="Gateway_DecyzjaDyrektora" targetRef="Task_Ksiegowanie" />
+    <bpmn:sequenceFlow id="Flow_DyrOdrzucil" name="Odrzucona" sourceRef="Gateway_DecyzjaDyrektora" targetRef="Task_Zwrot" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Zwrot" targetRef="End_Odrzucona" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Ksiegowanie" targetRef="End_Zaksiegowana" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_Firma_di" bpmnElement="Participant_Firma" isHorizontal="true">
+        <dc:Bounds x="150" y="80" width="1300" height="700" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Ksiegowosc_di" bpmnElement="Lane_Ksiegowosc" isHorizontal="true">
+        <dc:Bounds x="180" y="80" width="1270" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Kierownik_di" bpmnElement="Lane_Kierownik" isHorizontal="true">
+        <dc:Bounds x="180" y="330" width="1270" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Dyrektor_di" bpmnElement="Lane_Dyrektor" isHorizontal="true">
+        <dc:Bounds x="180" y="580" width="1270" height="200" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Start_Faktura_di" bpmnElement="Start_Faktura">
+        <dc:Bounds x="222" y="232" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Rejestracja_di" bpmnElement="Task_Rejestracja">
+        <dc:Bounds x="300" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Kompletne_di" bpmnElement="Gateway_Kompletne" isMarkerVisible="true">
+        <dc:Bounds x="455" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="380" y="290" width="100" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Wyjasnienie_di" bpmnElement="Task_Wyjasnienie">
+        <dc:Bounds x="430" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Zwrot_di" bpmnElement="Task_Zwrot">
+        <dc:Bounds x="780" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Odrzucona_di" bpmnElement="End_Odrzucona">
+        <dc:Bounds x="942" y="122" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Ksiegowanie_di" bpmnElement="Task_Ksiegowanie">
+        <dc:Bounds x="1150" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Zaksiegowana_di" bpmnElement="End_Zaksiegowana">
+        <dc:Bounds x="1322" y="232" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AkceptacjaKierownika_di" bpmnElement="Task_AkceptacjaKierownika">
+        <dc:Bounds x="540" y="390" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_3Dni_di" bpmnElement="Timer_3Dni">
+        <dc:Bounds x="622" y="452" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="650" y="495" width="80" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Przypomnienie_di" bpmnElement="Task_Przypomnienie">
+        <dc:Bounds x="470" y="490" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Przypomnienie_di" bpmnElement="End_Przypomnienie">
+        <dc:Bounds x="402" y="512" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_DecyzjaKierownika_di" bpmnElement="Gateway_DecyzjaKierownika" isMarkerVisible="true">
+        <dc:Bounds x="705" y="405" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="707" y="462" width="46" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Kwota_di" bpmnElement="Gateway_Kwota" isMarkerVisible="true">
+        <dc:Bounds x="815" y="405" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="752" y="462" width="80" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AkceptacjaDyrektora_di" bpmnElement="Task_AkceptacjaDyrektora">
+        <dc:Bounds x="900" y="640" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_DecyzjaDyrektora_di" bpmnElement="Gateway_DecyzjaDyrektora" isMarkerVisible="true">
+        <dc:Bounds x="1045" y="655" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1047" y="712" width="46" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="258" y="250" /><di:waypoint x="300" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="400" y="250" /><di:waypoint x="455" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Braki_di" bpmnElement="Flow_Braki">
+        <di:waypoint x="480" y="225" /><di:waypoint x="480" y="180" />
+        <bpmndi:BPMNLabel><dc:Bounds x="488" y="193" width="20" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Poprawiona_di" bpmnElement="Flow_Poprawiona">
+        <di:waypoint x="430" y="140" /><di:waypoint x="350" y="140" /><di:waypoint x="350" y="210" />
+        <bpmndi:BPMNLabel><dc:Bounds x="355" y="118" width="60" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Kompletne_di" bpmnElement="Flow_Kompletne">
+        <di:waypoint x="505" y="250" /><di:waypoint x="590" y="250" /><di:waypoint x="590" y="390" />
+        <bpmndi:BPMNLabel><dc:Bounds x="530" y="232" width="20" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Timer_di" bpmnElement="Flow_Timer">
+        <di:waypoint x="640" y="488" /><di:waypoint x="640" y="530" /><di:waypoint x="570" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PoPrzypomnieniu_di" bpmnElement="Flow_PoPrzypomnieniu">
+        <di:waypoint x="470" y="530" /><di:waypoint x="438" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="640" y="430" /><di:waypoint x="705" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_KierOdrzucil_di" bpmnElement="Flow_KierOdrzucil">
+        <di:waypoint x="730" y="405" /><di:waypoint x="730" y="140" /><di:waypoint x="780" y="140" />
+        <bpmndi:BPMNLabel><dc:Bounds x="660" y="300" width="60" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_KierZatwierdzil_di" bpmnElement="Flow_KierZatwierdzil">
+        <di:waypoint x="755" y="430" /><di:waypoint x="815" y="430" />
+        <bpmndi:BPMNLabel><dc:Bounds x="752" y="412" width="66" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PowyzejProgu_di" bpmnElement="Flow_PowyzejProgu">
+        <di:waypoint x="840" y="455" /><di:waypoint x="840" y="680" /><di:waypoint x="900" y="680" />
+        <bpmndi:BPMNLabel><dc:Bounds x="848" y="600" width="20" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PonizejProgu_di" bpmnElement="Flow_PonizejProgu">
+        <di:waypoint x="865" y="430" /><di:waypoint x="1170" y="430" /><di:waypoint x="1170" y="290" />
+        <bpmndi:BPMNLabel><dc:Bounds x="900" y="412" width="20" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="1000" y="680" /><di:waypoint x="1045" y="680" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DyrZatwierdzil_di" bpmnElement="Flow_DyrZatwierdzil">
+        <di:waypoint x="1095" y="680" /><di:waypoint x="1230" y="680" /><di:waypoint x="1230" y="290" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1110" y="662" width="66" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DyrOdrzucil_di" bpmnElement="Flow_DyrOdrzucil">
+        <di:waypoint x="1070" y="655" /><di:waypoint x="1070" y="200" /><di:waypoint x="830" y="200" /><di:waypoint x="830" y="180" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1078" y="560" width="60" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="880" y="140" /><di:waypoint x="942" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1250" y="250" /><di:waypoint x="1322" y="250" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
