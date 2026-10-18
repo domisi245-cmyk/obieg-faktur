@@ -1,0 +1,13 @@
+{
+  "name": "obieg-faktur-serwer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serwer API łączący demo obiegu faktur z bazą SQL Server",
+  "main": "serwer.js",
+  "scripts": {
+    "start": "node serwer.js"
+  },
+  "dependencies": {
+    "msnodesqlv8": "5.5.0"
+  }
+}

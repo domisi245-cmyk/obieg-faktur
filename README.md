@@ -6,7 +6,7 @@ Pokazuje cały proces: od analizy procesu w firmie, przez model procesu i bazę 
 ## Zobacz
 
 - 🎬 **Prezentacja wideo:** 5 krótkich filmów (łącznie ok. 4 minuty) – linki w tabeli poniżej
-- 🖱️ **Demo do samodzielnego przetestowania:** [LINK DO DEMO]
+- 🖱️ **Demo do samodzielnego przetestowania:** https://domisi245-cmyk.github.io/obieg-faktur/04_demo/
   (wersja online działa bez bazy danych – dane są zapisywane w przeglądarce)
 
 | Film | Co pokazuje |

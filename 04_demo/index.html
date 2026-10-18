@@ -1,0 +1,1076 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obieg faktur – demo</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --panel: #ffffff; --text: #1d2433; --muted: #5f6b7d; --line: #dde3ea;
+    --accent: #1f5fbf; --accent-soft: #e6eefb; --ok: #1d7a4a; --ok-soft: #e3f4ea;
+    --bad: #b3261e; --bad-soft: #fbe7e6; --warn: #8a5a00; --warn-soft: #fff3d6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; margin: 0; }
+  .who { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  select, input, textarea, button { font: inherit; }
+  select, input, textarea { padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--text); width: 100%; }
+  input[type=checkbox] { width: auto; }
+  .who select { width: auto; }
+  input.auto, select.auto { background: var(--ok-soft); border-color: #7cc49a; }
+  button { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  button.secondary { background: #fff; color: var(--accent); }
+  button.danger { background: var(--bad); border-color: var(--bad); }
+  button.small { padding: 4px 10px; font-size: 13px; }
+  nav { display: flex; gap: 4px; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--line); overflow-x: auto; }
+  nav button { background: none; border: none; border-bottom: 3px solid transparent; color: var(--muted); border-radius: 0; padding: 10px 12px; white-space: nowrap; }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 17px; }
+  .card h3 { margin: 0 0 10px; font-size: 15px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .row-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  tr.click { cursor: pointer; }
+  tr.click:hover td { background: var(--accent-soft); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--accent-soft); color: var(--accent); }
+  .badge.ok { background: var(--ok-soft); color: var(--ok); }
+  .badge.bad { background: var(--bad-soft); color: var(--bad); }
+  .badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .badge.gray { background: #eef0f3; color: var(--muted); }
+  .msg { padding: 10px 12px; border-radius: 8px; margin-top: 12px; }
+  .msg:empty { display: none; }
+  .msg.err { background: var(--bad-soft); color: var(--bad); }
+  .msg.ok { background: var(--ok-soft); color: var(--ok); }
+  .msg.info { background: var(--accent-soft); color: var(--accent); }
+  .muted { color: var(--muted); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .kpi .v { font-size: 26px; font-weight: 700; }
+  .bar { height: 10px; background: var(--accent); border-radius: 5px; }
+  .bar-row { display: grid; grid-template-columns: 110px 1fr 110px; gap: 10px; align-items: center; margin: 8px 0; font-size: 14px; }
+  .timeline { list-style: none; padding: 0; margin: 0; }
+  .timeline li { padding: 8px 0 8px 14px; border-left: 3px solid var(--line); margin-left: 4px; }
+  .empty { color: var(--muted); padding: 12px 0; }
+  .today { font-size: 13px; color: var(--muted); }
+  .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 14px; text-align: center; margin-bottom: 12px; }
+  .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop p { margin: 6px 0; }
+  .pdfview { border: 1px solid var(--line); border-radius: 8px; background: #eef0f3; min-height: 120px; overflow: hidden; }
+  .pdfview canvas { display: block; width: 100%; }
+  .pdfview .empty { text-align: center; padding: 40px 12px; }
+  .odczyt { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 14px; }
+  .odczyt table td { padding: 4px 8px; white-space: normal; }
+  .odczyt ul { margin: 8px 0 0; padding-left: 18px; }
+  .odczyt li { margin: 4px 0; }
+  .mail { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  .mail:last-child { border-bottom: none; }
+  .mail .meta { font-size: 13px; color: var(--muted); }
+  .filters { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 12px; }
+  @media (max-width: 700px) { .filters { grid-template-columns: 1fr; } .bar-row { grid-template-columns: 80px 1fr 90px; } }
+  .tryb { display: inline-block; margin-top: 2px; font-size: 12px; padding: 1px 8px; border-radius: 999px; }
+  .tryb.sql { background: var(--ok-soft); color: var(--ok); }
+  .tryb.lokalny { background: #eef0f3; color: var(--muted); }
+  .note { font-size: 13px; color: var(--muted); background: #f7f8fa; border-radius: 8px; padding: 8px 10px; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Obieg faktur kosztowych</h1><span id="tryb" class="tryb"></span></div>
+  <div class="who">
+    <label for="user" style="margin:0">Zalogowany jako:</label>
+    <select id="user"></select>
+    <span class="today" id="today"></span>
+    <button class="secondary" id="btnDay" title="Symuluje upływ czasu: przypomnienia po kilku dniach i zbliżające się terminy płatności">+1 dzień</button>
+    <button class="secondary" id="btnReset">Reset danych</button>
+  </div>
+</header>
+<nav id="tabs"></nav>
+<main id="view"></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* =====================================================================
+   Stałe
+   ===================================================================== */
+const USERS = [
+  { id: 1, name: 'Anna Nowak',          rola: 'Księgowość' },
+  { id: 2, name: 'Piotr Wiśniewski',    rola: 'Kierownik' },
+  { id: 3, name: 'Katarzyna Zielińska', rola: 'Kierownik' },
+  { id: 4, name: 'Tomasz Lewandowski',  rola: 'Kierownik' },
+  { id: 5, name: 'Marek Kamiński',      rola: 'Dyrektor' },
+  { id: 6, name: 'Ewa Dąbrowska',       rola: 'Kierownik' },
+];
+const KSIEGOWOSC_ID = 1;
+const DYREKTOR_ID = 5;
+const NASZ_NIP = '9990000043';   // NIP naszej firmy (nabywcy) – przy odczycie PDF szukamy innego NIP-u
+const STATUSY = ['Do wyjaśnienia', 'Akceptacja kierownika', 'Akceptacja dyrektora', 'Do zaksięgowania', 'Zaksięgowana', 'Odrzucona'];
+const PRZYKLADY = [
+  ['faktura-1-techserwis.pdf', '1. Zwykła'],
+  ['faktura-2-transport-powyzej-progu.pdf', '2. Powyżej progu'],
+  ['faktura-3-duplikat.pdf', '3. Duplikat'],
+  ['faktura-4-nowy-dostawca.pdf', '4. Nowy dostawca'],
+];
+const KEY = 'obieg-faktur-demo-v2';
+
+/* =====================================================================
+   Stan aplikacji
+   ===================================================================== */
+let state;
+let user = 1, tab = 'zadania', selected = null;
+let nowyPdf = null, ostatniOdczyt = null;
+let filtr = { q: '', status: '', mpk: '' };
+let wszystkieMaile = false;
+
+/* Tryb SQL: gdy strona jest otwarta przez serwer z folderu 06_serwer, wszystkie dane
+   i decyzje idą do bazy SQL Server, a reguły sprawdzają procedury składowane.
+   Bez serwera (np. GitHub Pages) demo działa samodzielnie na danych w przeglądarce. */
+let SQL = false;
+
+async function api(sciezka, dane) {
+  const r = await fetch('/api/' + sciezka, dane === undefined ? {} :
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dane) });
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(json.blad || 'Błąd serwera.');
+  return json;
+}
+async function odswiez() { state = await api('stan'); }
+// Wykonaj akcję w bazie, odśwież dane i pokaż wynik (albo komunikat błędu z SQL Servera)
+async function wBazie(akcja, poSukcesie) {
+  try {
+    const wynik = await akcja();
+    await odswiez();
+    render();
+    if (poSukcesie) pokaz('ok', poSukcesie(wynik));
+  } catch (e) {
+    pokaz('err', esc(e.message));
+  }
+}
+function base64(buf) {
+  const b = new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+function dzisISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function seed() {
+  // Daty to numery dni względem dnia startu demo (0 = dziś, -5 = 5 dni temu).
+  const f = (id, nr, dost, mpk, wyst, termin, netto, vat, opis, status, rej, zmiana, koniec, hist) =>
+    ({ id, nr, dost, mpk, wyst, termin, netto, vat, opis, status, rej, zmiana, koniec, hist, zal: null, przyp: null, ostrz: false });
+  const h = (dzien, krok, uid, decyzja, kom = '') => ({ dzien, krok, uid, decyzja, kom });
+  return {
+    start: dzisISO(), dzien: 0, nextId: 11, nextMail: 1, maile: [],
+    cfg: { prog: 5000, sla: 3, ostrz: 3 },
+    dostawcy: [
+      { id: 1, nazwa: 'TechSerwis Sp. z o.o.',     nip: '9990000008' },
+      { id: 2, nazwa: 'Trans-Logistyka S.A.',      nip: '9990000014' },
+      { id: 3, nazwa: 'Agencja Reklamowa Pomysł',  nip: '9990000020' },
+      { id: 4, nazwa: 'Hurtownia Opakowań Karton', nip: '9990000037' },
+    ],
+    mpk: [
+      { id: 1, kod: 'IT-01',  nazwa: 'Dział IT',  kier: 2 },
+      { id: 2, kod: 'MAG-01', nazwa: 'Magazyn',   kier: 3 },
+      { id: 3, kod: 'MKT-01', nazwa: 'Marketing', kier: 4 },
+    ],
+    zastepstwa: [{ kto: 3, zastepca: 6, od: -2, do: 5 }],   // Katarzyna na urlopie, zastępuje ją Ewa
+    faktury: [
+      f(1, 'FV/2026/001', 1, 1, -22, -8, 3200, 736, 'Serwis serwerów', 'Zaksięgowana', -20, -15, -15,
+        [h(-20,'Rejestracja',1,'Zarejestrowana'), h(-17,'Akceptacja kierownika',2,'Zaakceptowana'), h(-15,'Do zaksięgowania',1,'Zaksięgowana')]),
+      f(2, '118/2026', 2, 2, -19, -5, 12500, 2875, 'Transport palet – wrzesień', 'Zaksięgowana', -18, -10, -10,
+        [h(-18,'Rejestracja',1,'Zarejestrowana'), h(-16,'Akceptacja kierownika',3,'Zaakceptowana'), h(-12,'Akceptacja dyrektora',5,'Zaakceptowana','OK, zgodnie z umową ramową'), h(-10,'Do zaksięgowania',1,'Zaksięgowana')]),
+      f(3, 'F/0456/2026', 3, 3, -13, 1, 800, 184, 'Ulotki', 'Odrzucona', -12, -11, -11,
+        [h(-12,'Rejestracja',1,'Zarejestrowana'), h(-11,'Akceptacja kierownika',4,'Odrzucona','Dział marketingu nie zamawiał tych ulotek')]),
+      f(4, 'FV/2026/014', 1, 1, -4, 10, 4100, 943, 'Licencje oprogramowania', 'Akceptacja dyrektora', -3, -1, null,
+        [h(-3,'Rejestracja',1,'Zarejestrowana'), h(-1,'Akceptacja kierownika',2,'Zaakceptowana')]),
+      f(5, '131/2026', 2, 2, -6, 8, 2300, 529, 'Transport – dostawa pilna', 'Akceptacja kierownika', -5, -5, null,
+        [h(-5,'Rejestracja',1,'Zarejestrowana')]),
+      f(6, 'MAG/77/2026', 4, 3, -5, 9, 6000, 1380, 'Materiały targowe', 'Akceptacja kierownika', -4, -4, null,
+        [h(-4,'Rejestracja',1,'Zarejestrowana')]),
+      f(7, 'F/0502/2026', 3, 1, -2, 12, 450, 103.5, 'Szkolenie online', 'Akceptacja kierownika', -1, -1, null,
+        [h(-1,'Rejestracja',1,'Zarejestrowana')]),
+      f(8, 'MAG/80/2026', 4, 2, -4, 2, 1500, 345, 'Kartony 60x40', 'Do zaksięgowania', -3, -2, null,
+        [h(-3,'Rejestracja',1,'Zarejestrowana'), h(-2,'Akceptacja kierownika',3,'Zaakceptowana')]),
+      f(9, 'FV/2026/019', 1, 3, -4, 10, 2000, 460, 'Wsparcie strony www', 'Do wyjaśnienia', -3, -3, null,
+        [h(-3,'Rejestracja',1,'Do wyjaśnienia','Brak numeru zamówienia na fakturze')]),
+      f(10, '097/2026', 2, 1, -31, -17, 9800, 2254, 'Przeprowadzka serwerowni', 'Zaksięgowana', -30, -21, -21,
+        [h(-30,'Rejestracja',1,'Zarejestrowana'), h(-27,'Akceptacja kierownika',2,'Zaakceptowana'), h(-23,'Akceptacja dyrektora',5,'Zaakceptowana'), h(-21,'Do zaksięgowania',1,'Zaksięgowana')]),
+    ],
+  };
+}
+function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
+function save() { if (SQL) return; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+function nowyStan() { state = seed(); sprawdzTerminy(); save(); }
+
+/* Pliki PDF trzymamy w IndexedDB (localStorage jest na to za mały). Gdy przeglądarka
+   nie pozwala na zapis, pliki działają do odświeżenia strony. */
+const pliki = (() => {
+  const mem = new Map();
+  let dbp = null;
+  function open() {
+    if (!dbp) dbp = new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open('obieg-faktur-pdf', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('pdf');
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+    return dbp;
+  }
+  return {
+    async put(k, v) {
+      mem.set(k, v);
+      try { const db = await open(); db.transaction('pdf', 'readwrite').objectStore('pdf').put(v, k); } catch (e) {}
+    },
+    async get(k) {
+      if (SQL) {   // plik PDF zapisany w bazie (kolumna Faktury.PlikPdf)
+        try { const r = await fetch(`/api/faktury/${k}/pdf`); return r.ok ? await r.arrayBuffer() : null; } catch (e) { return null; }
+      }
+      if (mem.has(k)) return mem.get(k);
+      try {
+        const db = await open();
+        return await new Promise((res, rej) => {
+          const r = db.transaction('pdf').objectStore('pdf').get(k);
+          r.onsuccess = () => res(r.result || null);
+          r.onerror = () => rej(r.error);
+        });
+      } catch (e) { return null; }
+    },
+    async clear() {
+      mem.clear();
+      try { const db = await open(); db.transaction('pdf', 'readwrite').objectStore('pdf').clear(); } catch (e) {}
+    },
+  };
+})();
+
+/* =====================================================================
+   Pomocnicze
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const zl = n => n.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+const zaokr = n => Math.round(n * 100) / 100;
+const kwotaTxt = n => n.toFixed(2).replace('.', ',');
+const brutto = f => zaokr(f.netto + f.vat);                                    // R2
+const uName = id => USERS.find(u => u.id === id)?.name || '—';
+const mpkOf = f => state.mpk.find(m => m.id === f.mpk);
+const dostOf = f => state.dostawcy.find(d => d.id === f.dost);
+const zakonczona = f => f.status === 'Zaksięgowana' || f.status === 'Odrzucona';
+const liczba = s => parseFloat(String(s).replace(/\s/g, '').replace(',', '.'));
+
+function startDate() { const [y, m, d] = state.start.split('-').map(Number); return new Date(y, m - 1, d); }
+function dayToDate(n) { const x = startDate(); x.setDate(x.getDate() + n); return x; }
+const fmt = n => dayToDate(n).toLocaleDateString('pl-PL');
+function isoOf(n) { const x = dayToDate(n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; }
+function isoToDay(iso) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return Math.round((new Date(y, m - 1, d) - startDate()) / 864e5);
+}
+
+// Poprawność NIP (suma kontrolna)
+function nipOk(n) {
+  if (!/^\d{10}$/.test(n)) return false;
+  const s = [6, 5, 7, 2, 3, 4, 5, 6, 7].reduce((a, w, i) => a + w * +n[i], 0) % 11;
+  return s !== 10 && s === +n[9];
+}
+const nipFmt = n => String(n).replace(/^(\d{3})(\d{3})(\d{2})(\d{2})$/, '$1-$2-$3-$4');
+
+// R5: kto faktycznie zatwierdza danego dnia
+function akceptujacy(uid, dzien) {
+  const z = state.zastepstwa.find(z => z.kto === uid && dzien >= z.od && dzien <= z.do);
+  return z ? z.zastepca : uid;
+}
+// Kto jest teraz odpowiedzialny za fakturę
+function odpowiedzialny(f) {
+  switch (f.status) {
+    case 'Akceptacja kierownika': return akceptujacy(mpkOf(f).kier, state.dzien);   // R4 + R5
+    case 'Akceptacja dyrektora':  return akceptujacy(DYREKTOR_ID, state.dzien);
+    case 'Do wyjaśnienia':
+    case 'Do zaksięgowania':      return KSIEGOWOSC_ID;
+    default: return null;
+  }
+}
+const dniNaKroku = f => state.dzien - f.zmiana;
+const poTerminie = f => !zakonczona(f) && dniNaKroku(f) > state.cfg.sla;              // R9
+const dniDoPlatnosci = f => f.termin - state.dzien;
+const platnoscBlisko = f => !zakonczona(f) && dniDoPlatnosci(f) <= state.cfg.ostrz;
+
+function badge(status) {
+  const cls = { 'Zaksięgowana': 'ok', 'Odrzucona': 'bad', 'Do wyjaśnienia': 'warn' }[status] || '';
+  return `<span class="badge ${cls}">${esc(status)}</span>`;
+}
+function terminBadge(f) {
+  if (zakonczona(f)) return fmt(f.termin);
+  const d = dniDoPlatnosci(f);
+  if (d < 0) return `${fmt(f.termin)} <span class="badge bad">minął</span>`;
+  if (d <= state.cfg.ostrz) return `${fmt(f.termin)} <span class="badge warn">${d === 0 ? 'dziś' : 'za ' + d + ' dn.'}</span>`;
+  return fmt(f.termin);
+}
+const opisFaktury = f => `${f.nr} od ${dostOf(f).nazwa} na ${zl(brutto(f))}`;
+
+/* =====================================================================
+   Powiadomienia (symulacja maili)
+   ===================================================================== */
+function mail(doKogo, temat, tresc) {
+  state.maile.push({ id: state.nextMail++, dzien: state.dzien, do: doKogo, temat, tresc });
+}
+
+function powiadomPoZmianie(f, kom) {
+  const kto = odpowiedzialny(f);
+  if (f.status === 'Odrzucona') {
+    mail(KSIEGOWOSC_ID, `Faktura odrzucona: ${f.nr}`,
+      `Faktura ${opisFaktury(f)} została odrzucona przez: ${uName(user)}. Powód: „${kom}”. Zwróć fakturę do dostawcy.`);
+  } else if (f.status === 'Zaksięgowana') {
+    mail(mpkOf(f).kier, `Faktura zaksięgowana: ${f.nr}`,
+      `Faktura ${opisFaktury(f)} została zaksięgowana i przekazana do płatności (termin: ${fmt(f.termin)}).`);
+  } else if (kto) {
+    const kier = mpkOf(f).kier;
+    const zast = f.status === 'Akceptacja kierownika' && kto !== kier ? ` Zastępujesz: ${uName(kier)}.` : '';
+    mail(kto, `Nowe zadanie (${f.status.toLowerCase()}): ${f.nr}`,
+      `Faktura ${opisFaktury(f)} czeka na Twoją decyzję.${zast} Termin płatności: ${fmt(f.termin)}.`);
+  }
+}
+
+// Gdy zmiana (zastępstwo, kierownik, nowy dzień) przenosi zadania na inną osobę – powiadom ją
+function zPrzekazaniem(zmiana) {
+  const przed = new Map(state.faktury.filter(f => !zakonczona(f)).map(f => [f.id, odpowiedzialny(f)]));
+  zmiana();
+  for (const f of state.faktury) {
+    if (zakonczona(f) || !przed.has(f.id)) continue;
+    const teraz = odpowiedzialny(f);
+    if (teraz !== przed.get(f.id))
+      mail(teraz, `Przekazano Ci zadanie: ${f.nr}`,
+        `Faktura ${opisFaktury(f)} (krok: ${f.status}) przeszła do Ciebie od: ${uName(przed.get(f.id))} – zmiana zastępstw lub kierownika działu.`);
+  }
+}
+
+// Wywoływane przy każdej zmianie dnia: przypomnienia (R9) i terminy płatności
+function sprawdzTerminy() {
+  for (const f of state.faktury) {
+    if (zakonczona(f)) continue;
+    const kto = odpowiedzialny(f);
+    if (poTerminie(f) && f.przyp !== f.zmiana) {
+      f.przyp = f.zmiana;   // jedno przypomnienie na krok
+      mail(kto, `Przypomnienie: ${f.nr} czeka ${dniNaKroku(f)} dni`,
+        `Faktura ${opisFaktury(f)} czeka na Twoją decyzję od ${dniNaKroku(f)} dni (krok: ${f.status}). Prosimy o decyzję.`);
+      if (kto !== KSIEGOWOSC_ID)
+        mail(KSIEGOWOSC_ID, `Faktura utknęła: ${f.nr}`,
+          `Faktura ${opisFaktury(f)} czeka u: ${uName(kto)} od ${dniNaKroku(f)} dni. Wysłano przypomnienie.`);
+    }
+    if (platnoscBlisko(f) && !f.ostrz) {
+      f.ostrz = true;
+      const d = dniDoPlatnosci(f);
+      mail(KSIEGOWOSC_ID, d < 0 ? `Minął termin płatności: ${f.nr}` : `Zbliża się termin płatności: ${f.nr}`,
+        `Faktura ${opisFaktury(f)} ma termin płatności ${fmt(f.termin)}, a jest wciąż na etapie „${f.status}” (u: ${uName(kto)}).`);
+    }
+  }
+}
+
+/* =====================================================================
+   Akcje procesu
+   ===================================================================== */
+function zmienStatus(f, nowy, decyzja, kom) {
+  f.hist.push({ dzien: state.dzien, krok: f.status, uid: user, decyzja, kom: kom || '' });   // R10
+  f.status = nowy;
+  f.zmiana = state.dzien;
+  if (zakonczona(f)) f.koniec = state.dzien;
+  powiadomPoZmianie(f, kom);
+  save();
+}
+
+function decyzja(id, akceptuj) {
+  const f = state.faktury.find(x => x.id === id);
+  const kom = ($('#kom')?.value || '').trim();
+  if (odpowiedzialny(f) !== user) return pokaz('err', 'To zadanie nie jest przypisane do Ciebie.');      // R8
+  if (!akceptuj && !kom) return pokaz('err', 'Odrzucenie wymaga podania powodu w komentarzu.');          // R7
+
+  if (SQL) {   // decyzję wykonuje procedura dbo.sp_Decyzja / dbo.sp_KrokKsiegowosci
+    return wBazie(() => api(`faktury/${id}/krok`, { uid: user, akceptuj, kom }), r => {
+      const g = state.faktury.find(x => x.id === id), kto = odpowiedzialny(g);
+      return `Zapisano w bazie. Status: ${esc(r.NowyStatus)}${kto ? ' – teraz u: ' + esc(uName(kto)) : ''}. Powiadomienie trafiło do tabeli Powiadomienia.`;
+    });
+  }
+
+  if (f.status === 'Akceptacja kierownika' || f.status === 'Akceptacja dyrektora') {
+    let nowy;
+    if (!akceptuj) nowy = 'Odrzucona';
+    else if (f.status === 'Akceptacja kierownika' && brutto(f) > state.cfg.prog) nowy = 'Akceptacja dyrektora';  // R6
+    else nowy = 'Do zaksięgowania';
+    zmienStatus(f, nowy, akceptuj ? 'Zaakceptowana' : 'Odrzucona', kom);
+  } else if (f.status === 'Do wyjaśnienia') {
+    zmienStatus(f, 'Akceptacja kierownika', 'Uzupełniona', kom);
+  } else if (f.status === 'Do zaksięgowania') {
+    zmienStatus(f, 'Zaksięgowana', 'Zaksięgowana', kom);
+  }
+  render();
+  const kto = odpowiedzialny(f);
+  pokaz('ok', `Zapisano. Status: ${esc(f.status)}${kto ? ' – teraz u: ' + esc(uName(kto)) : ''}. Wysłano powiadomienie.`);
+}
+
+async function zarejestruj(ev) {
+  ev.preventDefault();
+  const nr = $('#nr').value.trim();
+  const dost = +$('#dost').value, mpk = +$('#mpk').value;
+  const wyst = isoToDay($('#wyst').value), termin = isoToDay($('#termin').value);
+  const netto = liczba($('#netto').value), vat = liczba($('#vat').value);
+  const opis = $('#opis').value.trim();
+  const braki = $('#braki').checked;
+
+  if (SQL) {   // walidację i zapis wykonuje procedura dbo.sp_Rejestruj
+    const pdf = nowyPdf;
+    return wBazie(async () => {
+      const r = await api('faktury', { uid: user, nr, dost, mpk, wyst: $('#wyst').value, termin: $('#termin').value,
+        netto: isNaN(netto) ? null : zaokr(netto), vat: isNaN(vat) ? null : zaokr(vat), opis, braki,
+        zal: pdf?.nazwa, pdf: pdf ? base64(pdf.buf) : null });
+      nowyPdf = null; ostatniOdczyt = null; selected = r.Id; tab = 'wszystkie';
+      return r;
+    }, r => r.Status === 'Do wyjaśnienia' ? 'Faktura zapisana w bazie jako „Do wyjaśnienia”.'
+      : `Faktura zapisana w bazie (Id ${r.Id}) i wysłana do: <b>${esc(uName(r.OdpowiedzialnyId))}</b>. Powiadomienie trafiło do tabeli Powiadomienia.`);
+  }
+
+  // R1 – wymagane pola
+  if (!nr || !dost || !mpk || wyst === null || termin === null || isNaN(netto) || isNaN(vat))
+    return pokaz('err', 'Uzupełnij wszystkie wymagane pola (oznaczone *).');
+  if (!nowyPdf) return pokaz('err', 'Dodaj plik PDF faktury – bez załącznika nie da się jej sprawdzić.');
+  if (netto <= 0) return pokaz('err', 'Kwota netto musi być większa od zera.');
+  if (vat < 0) return pokaz('err', 'VAT nie może być ujemny.');
+  if (termin < wyst) return pokaz('err', 'Termin płatności nie może być wcześniejszy niż data wystawienia.');
+  // R3 – duplikat
+  const dup = state.faktury.find(f => f.dost === dost && f.nr.toLowerCase() === nr.toLowerCase());
+  if (dup) return pokaz('err', `Duplikat! Faktura ${esc(dup.nr)} od tego dostawcy jest już w systemie (status: ${esc(dup.status)}).`);
+
+  const status = braki ? 'Do wyjaśnienia' : 'Akceptacja kierownika';
+  const f = { id: state.nextId++, nr, dost, mpk, wyst, termin, netto: zaokr(netto), vat: zaokr(vat), opis, status,
+              rej: state.dzien, zmiana: state.dzien, koniec: null, zal: nowyPdf.nazwa, przyp: null, ostrz: false,
+              hist: [{ dzien: state.dzien, krok: 'Rejestracja', uid: user, decyzja: braki ? 'Do wyjaśnienia' : 'Zarejestrowana', kom: braki ? opis : '' }] };
+  await pliki.put(f.id, nowyPdf.buf);
+  state.faktury.push(f);
+  if (!braki) powiadomPoZmianie(f);
+  sprawdzTerminy();
+  save();
+  nowyPdf = null; ostatniOdczyt = null;
+  selected = f.id;
+  tab = 'wszystkie';
+  render();
+  const kto = odpowiedzialny(f);
+  pokaz('ok', braki ? 'Faktura zapisana jako „Do wyjaśnienia”.'
+    : `Faktura zarejestrowana i wysłana do: <b>${esc(uName(kto))}</b>${kto !== mpkOf(f).kier ? ' (zastępstwo)' : ''}. Wysłano powiadomienie e-mail.`);
+}
+
+function pokaz(typ, t) { const m = $('#msg'); if (m) { m.className = 'msg ' + typ; m.innerHTML = t; } }
+
+/* =====================================================================
+   PDF: podgląd i odczyt danych
+   ===================================================================== */
+async function rysujPdf(buf, el) {
+  if (!el) return;
+  if (!window.pdfjsLib) { el.innerHTML = '<div class="msg err">Nie udało się wczytać biblioteki PDF (sprawdź połączenie z internetem).</div>'; return; }
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
+    const canvases = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const w = el.clientWidth || 500;
+      const scale = (w / page.getViewport({ scale: 1 }).width) * (window.devicePixelRatio || 1);
+      const vp = page.getViewport({ scale });
+      const c = document.createElement('canvas');
+      c.width = vp.width; c.height = vp.height;
+      // intent 'print' rysuje od razu, także gdy karta jest w tle
+      await page.render({ canvasContext: c.getContext('2d'), viewport: vp, intent: 'print' }).promise;
+      canvases.push(c);
+    }
+    if (!el.isConnected) return;
+    el.innerHTML = '';
+    canvases.forEach(c => el.appendChild(c));
+  } catch (e) {
+    if (el.isConnected) el.innerHTML = '<div class="msg err">Nie udało się otworzyć pliku PDF.</div>';
+  }
+}
+
+// Wyciąga tekst z PDF jako linie podzielone na „komórki” (np. kolumny Sprzedawca / Nabywca)
+async function liniePdf(buf) {
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf.slice(0)) }).promise;
+  const out = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const tc = await (await pdf.getPage(p)).getTextContent();
+    const rows = new Map();
+    for (const it of tc.items) {
+      if (!it.str || !it.str.trim()) continue;
+      const y = Math.round(it.transform[5]);
+      let key = [...rows.keys()].find(k => Math.abs(k - y) <= 2);
+      if (key === undefined) { key = y; rows.set(key, []); }
+      rows.get(key).push({ x: it.transform[4], w: it.width, str: it.str });
+    }
+    [...rows.entries()].sort((a, b) => b[0] - a[0]).forEach(([, items]) => {
+      items.sort((a, b) => a.x - b.x);
+      const cells = [];
+      for (const it of items) {
+        const last = cells[cells.length - 1];
+        if (last && it.x - last.x2 < 25) { last.str += (it.x - last.x2 > 1 ? ' ' : '') + it.str; last.x2 = it.x + it.w; }
+        else cells.push({ x: it.x, x2: it.x + it.w, str: it.str });
+      }
+      out.push(cells.map(c => ({ x: c.x, str: c.str.replace(/\s+/g, ' ').trim() })));
+    });
+  }
+  return out;
+}
+
+function kwoty(t) {
+  let r = [...t.matchAll(/\d{1,3}(?:[  .]\d{3})+,\d{2}(?!\d)|\d+,\d{2}(?!\d)/g)]
+    .map(m => parseFloat(m[0].replace(/[  .]/g, '').replace(',', '.')));
+  if (!r.length) r = [...t.matchAll(/\d+\.\d{2}(?![\d.])/g)].map(m => parseFloat(m[0]));
+  return r;
+}
+function naISO(s) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const [d, m, y] = s.split(/[.\-\/]/);
+  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+}
+
+// Odczyt danych z faktury – proste reguły na tekście (w WEBCON robi to moduł AI / OCR)
+function odczytaj(linie) {
+  const teksty = linie.map(l => l.map(c => c.str).join(' '));
+  const all = teksty.join('\n');
+  const DATA = '(\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[.\\-/]\\d{1,2}[.\\-/]\\d{4})';
+  const d = {};
+
+  let m = all.match(/faktura(?:\s+vat)?(?:\s+(?:nr\.?|numer))?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/\-_.]*)/i);
+  if (m && /\d/.test(m[1])) d.nr = m[1];
+  m = all.match(new RegExp('data\\s+wystawienia\\s*:?\\s*' + DATA, 'i'));          if (m) d.wyst = naISO(m[1]);
+  m = all.match(new RegExp('termin\\s+p[łl]atno[śs]ci\\s*:?\\s*' + DATA, 'i'));    if (m) d.termin = naISO(m[1]);
+
+  const nipy = [...all.matchAll(/NIP\s*:?\s*(?:PL)?\s*(\d[\d\- ]{8,14}\d)/gi)]
+    .map(x => x[1].replace(/\D/g, '')).filter(n => n.length === 10);
+  d.nip = nipy.find(n => n !== NASZ_NIP) || null;
+
+  linie.forEach((l, i) => {
+    if (d.sprzedawca) return;
+    const c = l.find(c => /^sprzedawca/i.test(c.str));
+    if (!c) return;
+    const reszta = c.str.replace(/^sprzedawca\s*:?\s*/i, '');
+    if (reszta) d.sprzedawca = reszta;
+    else { const nast = (linie[i + 1] || []).find(k => Math.abs(k.x - c.x) < 30); if (nast) d.sprzedawca = nast.str; }
+  });
+
+  for (const t of teksty) {
+    const kw = kwoty(t);
+    if (!kw.length) continue;
+    const ost = kw[kw.length - 1];
+    if (d.netto == null && /(razem|suma|łącznie|lacznie)\s+netto|netto\s+razem/i.test(t)) d.netto = ost;
+    else if (d.brutto == null && /brutto|do\s+zap[łl]aty/i.test(t)) d.brutto = ost;
+    else if (d.vat == null && /\bvat\b/i.test(t) && !/netto|brutto/i.test(t)) d.vat = ost;
+  }
+  if (d.vat == null && d.netto != null && d.brutto != null) d.vat = zaokr(d.brutto - d.netto);
+  if (d.netto == null && d.vat != null && d.brutto != null) d.netto = zaokr(d.brutto - d.vat);
+  return d;
+}
+
+async function wczytajPdf(buf, nazwa) {
+  nowyPdf = { buf, nazwa };
+  $('#pdfNazwa').innerHTML = `Plik: <b>${esc(nazwa)}</b>`;
+  $('#odczyt').innerHTML = '<div class="odczyt muted">Odczytuję dane z faktury…</div>';
+  await rysujPdf(buf, $('#podgladNowa'));
+  if (!window.pdfjsLib) { $('#odczyt').innerHTML = ''; return; }
+  try {
+    ostatniOdczyt = odczytaj(await liniePdf(buf));
+    wypelnij(ostatniOdczyt);
+  } catch (e) {
+    $('#odczyt').innerHTML = '<div class="odczyt">Nie udało się odczytać tekstu z PDF (może to skan?). Uzupełnij dane ręcznie.</div>';
+  }
+}
+
+function wypelnij(d) {
+  const set = (id, val) => { const el = $('#' + id); if (!el || val == null || val === '') return; el.value = val; el.classList.add('auto'); };
+  set('nr', d.nr); set('wyst', d.wyst); set('termin', d.termin);
+  if (d.netto != null) set('netto', kwotaTxt(d.netto));
+  if (d.vat != null) set('vat', kwotaTxt(d.vat));
+  liczBrutto();
+
+  const uwagi = [];
+  const dost = d.nip ? state.dostawcy.find(x => x.nip === d.nip) : null;
+  if (dost) {
+    set('dost', String(dost.id));
+    const poprzednia = state.faktury.filter(f => f.dost === dost.id).sort((a, b) => b.id - a.id)[0];
+    if (poprzednia) {
+      set('mpk', String(poprzednia.mpk));
+      uwagi.push(['info', `Dział (MPK) podpowiedziany na podstawie poprzednich faktur tego dostawcy – sprawdź, czy się zgadza.`]);
+    } else uwagi.push(['info', 'Wybierz dział (MPK) – nie ma go na fakturze.']);
+    const dup = d.nr && state.faktury.find(f => f.dost === dost.id && f.nr.toLowerCase() === d.nr.toLowerCase());
+    if (dup) uwagi.push(['err', `Ta faktura jest już w systemie (status: ${esc(dup.status)}). Rejestracja zostanie zablokowana.`]);
+  } else if (d.nip) {
+    uwagi.push(['warn', `Dostawcy <b>${esc(d.sprzedawca || '?')}</b> (NIP ${nipFmt(d.nip)}) nie ma w słowniku.
+      <button type="button" class="small" data-act="dodajZPdf">Dodaj do słownika</button>`]);
+  } else uwagi.push(['warn', 'Nie znaleziono NIP sprzedawcy – wybierz dostawcę ręcznie.']);
+  if (d.nip && !nipOk(d.nip)) uwagi.push(['err', 'NIP sprzedawcy ma błędną sumę kontrolną – sprawdź go z dostawcą.']);
+  if (d.netto != null && d.vat != null && d.brutto != null && Math.abs(d.netto + d.vat - d.brutto) > 0.01)
+    uwagi.push(['err', `Na fakturze netto + VAT (${zl(d.netto + d.vat)}) nie równa się kwocie brutto (${zl(d.brutto)}).`]);
+  const b = d.brutto ?? (d.netto != null && d.vat != null ? d.netto + d.vat : null);
+  if (b != null && b > state.cfg.prog) uwagi.push(['info', `Kwota powyżej ${zl(state.cfg.prog)} – po kierowniku zatwierdzi ją też dyrektor finansowy.`]);
+
+  const pola = [['Numer faktury', d.nr], ['Sprzedawca', d.sprzedawca], ['NIP sprzedawcy', d.nip && nipFmt(d.nip)],
+    ['Data wystawienia', d.wyst], ['Termin płatności', d.termin], ['Kwota netto', d.netto != null && zl(d.netto)],
+    ['VAT', d.vat != null && zl(d.vat)], ['Kwota brutto', d.brutto != null && zl(d.brutto)]];
+  const ile = pola.filter(p => p[1]).length;
+  const ikona = { info: 'ℹ️', warn: '⚠️', err: '⛔' };
+  $('#odczyt').innerHTML = `<div class="odczyt"><b>Odczytano automatycznie ${ile} z ${pola.length} pól</b> <span class="muted">(zielone pola w formularzu – sprawdź je przed zapisem)</span>
+    <table>${pola.map(([k, v]) => `<tr><td class="muted">${k}</td><td>${v ? '✓ ' + esc(v) : '<span class="badge warn">nie znaleziono</span>'}</td></tr>`).join('')}</table>
+    ${uwagi.length ? `<ul>${uwagi.map(([t, x]) => `<li>${ikona[t]} ${x}</li>`).join('')}</ul>` : ''}</div>`;
+}
+
+function dodajDostawceZPdf() {
+  const d = ostatniOdczyt;
+  if (!d || !d.nip || state.dostawcy.some(x => x.nip === d.nip)) return;
+  if (SQL) {
+    // bez render(), żeby nie skasować wypełnionego formularza
+    api('dostawcy', { nazwa: d.sprzedawca || 'Nowy dostawca', nip: d.nip })
+      .then(odswiez).then(() => { $('#dost').innerHTML = opcjeDostawcow(); wypelnij(d); })
+      .catch(e => pokaz('err', esc(e.message)));
+    return;
+  }
+  state.dostawcy.push({ id: Math.max(...state.dostawcy.map(x => x.id)) + 1, nazwa: d.sprzedawca || 'Nowy dostawca', nip: d.nip });
+  save();
+  $('#dost').innerHTML = opcjeDostawcow();
+  wypelnij(d);
+}
+
+/* =====================================================================
+   Widoki
+   ===================================================================== */
+const opcjeDostawcow = () => '<option value="">— wybierz —</option>' +
+  state.dostawcy.map(d => `<option value="${d.id}">${esc(d.nazwa)} (NIP ${nipFmt(d.nip)})</option>`).join('');
+const opcjeMpk = () => '<option value="">— wybierz —</option>' +
+  state.mpk.map(m => `<option value="${m.id}">${esc(m.kod)} – ${esc(m.nazwa)}</option>`).join('');
+const decydenci = () => USERS.filter(u => u.rola === 'Kierownik' || u.rola === 'Dyrektor');
+
+function render() {
+  const u = USERS.find(x => x.id === user);
+  const zadania = state.faktury.filter(f => odpowiedzialny(f) === user);
+  const moje = state.maile.filter(m => m.do === user).length;
+  const tabs = [['zadania', `Moje zadania (${zadania.length})`]];
+  if (u.rola === 'Księgowość') tabs.push(['nowa', 'Nowa faktura']);
+  tabs.push(['wszystkie', 'Wszystkie faktury'], ['raport', 'Raport'], ['maile', `Powiadomienia (${moje})`], ['ustawienia', 'Ustawienia']);
+  if (!tabs.some(t => t[0] === tab)) tab = 'zadania';
+
+  $('#tabs').innerHTML = tabs.map(([k, t]) => `<button class="${k === tab ? 'active' : ''}" data-tab="${k}">${t}</button>`).join('');
+  $('#today').textContent = 'Dziś: ' + fmt(state.dzien);
+
+  const v = { zadania: widokZadania, nowa: widokNowa, wszystkie: widokWszystkie, raport: widokRaport,
+              maile: widokMaile, ustawienia: widokUstawienia }[tab];
+  $('#view').innerHTML = v(zadania) + (selected && (tab === 'zadania' || tab === 'wszystkie' || tab === 'raport') ? widokSzczegoly() : '');
+
+  if (tab === 'nowa') { $('#formNowa').addEventListener('submit', zarejestruj); nowyPdf = null; ostatniOdczyt = null; }
+  if (tab === 'wszystkie') renderLista();
+  if (selected) pokazZalacznik();
+}
+
+function tabela(lista, pokazOdp = true) {
+  if (!lista.length) return '<div class="empty">Brak faktur.</div>';
+  return `<div class="table-wrap"><table>
+    <tr><th>Nr faktury</th><th>Dostawca</th><th>MPK</th><th class="num">Brutto</th><th>Termin płatności</th><th>Status</th>${pokazOdp ? '<th>U kogo</th>' : ''}<th>Dni na kroku</th></tr>
+    ${lista.map(f => `<tr class="click" data-id="${f.id}">
+      <td>${esc(f.nr)}${f.zal ? ' <span class="badge gray" title="Ma załącznik PDF">PDF</span>' : ''}</td>
+      <td>${esc(dostOf(f).nazwa)}</td><td>${esc(mpkOf(f).kod)}</td>
+      <td class="num">${zl(brutto(f))}</td><td>${terminBadge(f)}</td><td>${badge(f.status)}</td>
+      ${pokazOdp ? `<td>${esc(uName(odpowiedzialny(f)))}</td>` : ''}
+      <td>${zakonczona(f) ? '—' : dniNaKroku(f) + (poTerminie(f) ? ' <span class="badge bad">po terminie</span>' : '')}</td>
+    </tr>`).join('')}
+  </table></div>`;
+}
+
+function widokZadania(zadania) {
+  const u = USERS.find(x => x.id === user);
+  const zast = state.zastepstwa.filter(z => z.zastepca === user && state.dzien >= z.od && state.dzien <= z.do);
+  return `<div class="card"><h2>Moje zadania – ${esc(u.name)} (${esc(u.rola)})</h2>
+    ${zast.map(z => `<p class="muted">Masz dziś zastępstwo za: <b>${esc(uName(z.kto))}</b> (do ${fmt(z.do)}).</p>`).join('')}
+    ${zadania.some(poTerminie) ? `<div class="msg err">Przypomnienie: masz zadania czekające dłużej niż ${state.cfg.sla} dni.</div>` : ''}
+    ${zadania.some(platnoscBlisko) ? `<div class="msg info">Uwaga: zbliża się termin płatności niektórych faktur.</div>` : ''}
+    <p class="muted">Kliknij fakturę, żeby zobaczyć szczegóły, podgląd PDF i podjąć decyzję. Zmień użytkownika u góry, żeby zobaczyć proces z innej perspektywy.</p>
+    ${tabela(zadania, false)}</div>`;
+}
+
+function widokNowa() {
+  return `<div class="card"><h2>Rejestracja faktury</h2>
+    <div class="two">
+      <div>
+        <div class="drop" id="drop">
+          <b>1. Dodaj fakturę PDF</b>
+          <p class="muted">Przeciągnij plik tutaj albo wybierz go z dysku:</p>
+          <input type="file" id="plik" accept="application/pdf,.pdf">
+          <p class="muted" style="margin-top:10px">…albo wczytaj przykładową fakturę:</p>
+          <div class="row-actions" style="margin:0;justify-content:center">
+            ${PRZYKLADY.map(([p, t]) => `<button type="button" class="secondary small" data-act="przyklad" data-plik="${p}">${t}</button>`).join('')}
+          </div>
+          <p id="pdfNazwa" class="muted" style="margin-top:10px"></p>
+        </div>
+        <div id="odczyt"></div>
+        <div class="pdfview" id="podgladNowa"><div class="empty">Tu pojawi się podgląd faktury</div></div>
+      </div>
+      <form id="formNowa" novalidate>
+        <b>2. Sprawdź dane i zarejestruj</b>
+        <div class="grid" style="margin-top:12px">
+          <div><label for="nr">Numer faktury *</label><input id="nr" placeholder="np. FV/2026/025"></div>
+          <div><label for="dost">Dostawca *</label><select id="dost">${opcjeDostawcow()}</select></div>
+          <div><label for="mpk">MPK (dział) *</label><select id="mpk">${opcjeMpk()}</select></div>
+          <div><label for="wyst">Data wystawienia *</label><input id="wyst" type="date"></div>
+          <div><label for="termin">Termin płatności *</label><input id="termin" type="date"></div>
+          <div><label for="netto">Kwota netto *</label><input id="netto" inputmode="decimal" placeholder="0,00"></div>
+          <div><label for="vat">VAT *</label><input id="vat" inputmode="decimal" placeholder="0,00"></div>
+          <div><label>Kwota brutto (liczona automatycznie)</label><input id="brutto" disabled></div>
+        </div>
+        <div style="margin-top:12px"><label for="opis">Opis / uwagi</label><textarea id="opis" rows="2"></textarea></div>
+        <label style="margin-top:10px;display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="braki"> Brakuje danych – wyjaśnić z dostawcą przed wysłaniem do akceptacji</label>
+        <div class="row-actions"><button type="submit">Zarejestruj</button><button type="button" class="secondary" id="vat23">VAT 23%</button></div>
+        <div id="msg" class="msg"></div>
+        <p class="note">Wypróbuj przykłady: <b>2</b> przekracza próg kwotowy, <b>3</b> to duplikat faktury już zapisanej w systemie, <b>4</b> pochodzi od dostawcy spoza słownika.</p>
+      </form>
+    </div></div>`;
+}
+
+function przefiltrowane() {
+  const q = filtr.q.trim().toLowerCase();
+  return [...state.faktury].sort((a, b) => b.id - a.id).filter(f =>
+    (!filtr.status || f.status === filtr.status) &&
+    (!filtr.mpk || f.mpk === +filtr.mpk) &&
+    (!q || [f.nr, dostOf(f).nazwa, dostOf(f).nip, nipFmt(dostOf(f).nip), f.opis].some(x => String(x || '').toLowerCase().includes(q))));
+}
+function widokWszystkie() {
+  return `<div class="card"><h2>Wszystkie faktury</h2>
+    <div class="filters">
+      <div><label for="fq">Szukaj (numer, dostawca, NIP, opis)</label><input id="fq" value="${esc(filtr.q)}" placeholder="np. TechSerwis"></div>
+      <div><label for="fs">Status</label><select id="fs"><option value="">Wszystkie</option>${STATUSY.map(s => `<option ${s === filtr.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+      <div><label for="fm">MPK</label><select id="fm"><option value="">Wszystkie</option>${state.mpk.map(m => `<option value="${m.id}" ${String(m.id) === filtr.mpk ? 'selected' : ''}>${esc(m.kod)}</option>`).join('')}</select></div>
+      <div><button class="secondary" data-act="eksport">Eksport do Excela</button></div>
+    </div>
+    <div id="lista"></div></div>`;
+}
+function renderLista() {
+  const lista = przefiltrowane();
+  $('#lista').innerHTML = `<p class="muted" style="margin:0 0 6px">Wyświetlono ${lista.length} z ${state.faktury.length} faktur.</p>` + tabela(lista);
+}
+function eksportCSV() {
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const kol = ['Nr faktury', 'Dostawca', 'NIP', 'MPK', 'Data wystawienia', 'Termin płatności', 'Netto', 'VAT', 'Brutto', 'Status', 'U kogo', 'Dni na kroku'];
+  const wiersze = przefiltrowane().map(f => [f.nr, dostOf(f).nazwa, nipFmt(dostOf(f).nip), mpkOf(f).kod, fmt(f.wyst), fmt(f.termin),
+    kwotaTxt(f.netto), kwotaTxt(f.vat), kwotaTxt(brutto(f)), f.status, odpowiedzialny(f) ? uName(odpowiedzialny(f)) : '',
+    zakonczona(f) ? '' : dniNaKroku(f)].map(q).join(';'));
+  const csv = '﻿' + [kol.map(q).join(';'), ...wiersze].join('\r\n');   // BOM + średniki = polski Excel otworzy poprawnie
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `faktury_${isoOf(state.dzien)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+function widokSzczegoly() {
+  const f = state.faktury.find(x => x.id === selected);
+  if (!f) return '';
+  const kto = odpowiedzialny(f);
+  let akcje = '';
+  if (kto === user) {
+    if (f.status === 'Akceptacja kierownika' || f.status === 'Akceptacja dyrektora') {
+      const dalej = f.status === 'Akceptacja kierownika' && brutto(f) > state.cfg.prog
+        ? `Po akceptacji faktura trafi do dyrektora finansowego (kwota powyżej ${zl(state.cfg.prog)}).` : 'Po akceptacji faktura trafi do księgowania.';
+      akcje = `<p class="muted">${dalej}</p>
+        <label for="kom">Komentarz (wymagany przy odrzuceniu)</label><textarea id="kom" rows="2"></textarea>
+        <div class="row-actions"><button data-act="ok" data-id="${f.id}">Zatwierdź</button><button class="danger" data-act="no" data-id="${f.id}">Odrzuć</button></div>`;
+    } else if (f.status === 'Do wyjaśnienia') {
+      akcje = `<label for="kom">Co zostało wyjaśnione?</label><textarea id="kom" rows="2"></textarea>
+        <div class="row-actions"><button data-act="ok" data-id="${f.id}">Uzupełniono – wyślij do akceptacji</button></div>`;
+    } else if (f.status === 'Do zaksięgowania') {
+      akcje = `<div class="row-actions"><button data-act="ok" data-id="${f.id}">Zaksięguj i przekaż do płatności</button></div>`;
+    }
+  }
+  return `<div class="card" id="szczegoly"><h2>Faktura ${esc(f.nr)} ${badge(f.status)}</h2>
+    <div class="two">
+      <div>
+        <div class="grid">
+          <div><label>Dostawca</label>${esc(dostOf(f).nazwa)}<br><span class="muted">NIP ${nipFmt(dostOf(f).nip)}</span></div>
+          <div><label>MPK</label>${esc(mpkOf(f).kod)} – ${esc(mpkOf(f).nazwa)}</div>
+          <div><label>Data wystawienia</label>${fmt(f.wyst)}</div>
+          <div><label>Termin płatności</label>${terminBadge(f)}</div>
+          <div><label>Netto / VAT</label>${zl(f.netto)} / ${zl(f.vat)}</div>
+          <div><label>Brutto</label><b>${zl(brutto(f))}</b></div>
+          <div><label>Opis</label>${esc(f.opis) || '—'}</div>
+          <div><label>Teraz u</label>${kto ? esc(uName(kto)) + (poTerminie(f) ? ' <span class="badge bad">po terminie</span>' : '') : '—'}</div>
+        </div>
+        ${akcje}
+        <div id="msg" class="msg"></div>
+        <h3 style="margin-top:16px">Historia</h3>
+        <ul class="timeline">${f.hist.map(h => `<li><b>${fmt(h.dzien)}</b> · ${esc(h.krok)} · ${esc(uName(h.uid))} → <b>${esc(h.decyzja)}</b>${h.kom ? `<br><span class="muted">„${esc(h.kom)}”</span>` : ''}</li>`).join('')}</ul>
+        <div class="row-actions"><button class="secondary" data-act="close">Zamknij</button></div>
+      </div>
+      <div>
+        <h3>Załącznik ${f.zal ? `<span class="muted" style="font-weight:normal">– ${esc(f.zal)}</span> <button class="secondary small" data-act="otworzPdf" data-id="${f.id}">Otwórz w nowej karcie</button>` : ''}</h3>
+        <div class="pdfview" id="podgladSzcz"><div class="empty">${f.zal ? 'Wczytywanie…' : 'Brak załącznika – to faktura z danych przykładowych.<br>Zarejestruj nową fakturę z PDF, żeby zobaczyć podgląd.'}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+async function pokazZalacznik() {
+  const f = state.faktury.find(x => x.id === selected);
+  const el = $('#podgladSzcz');
+  if (!f || !f.zal || !el) return;
+  const buf = await pliki.get(f.id);
+  if (!el.isConnected) return;
+  if (!buf) { el.innerHTML = '<div class="empty">Plik nie jest dostępny w tej przeglądarce.</div>'; return; }
+  rysujPdf(buf, el);
+}
+async function otworzPdf(id) {
+  const buf = await pliki.get(id);
+  if (buf) window.open(URL.createObjectURL(new Blob([buf], { type: 'application/pdf' })), '_blank');
+}
+
+function widokRaport() {
+  const F = state.faktury;
+  const wObiegu = F.filter(f => !zakonczona(f));
+  const zaksiegowane = F.filter(f => f.status === 'Zaksięgowana');
+  const odrzucone = F.filter(f => f.status === 'Odrzucona');
+  const sredniCzas = zaksiegowane.length ? zaksiegowane.reduce((s, f) => s + (f.koniec - f.rej), 0) / zaksiegowane.length : 0;
+  const zakonczone = zaksiegowane.length + odrzucone.length;
+  const pctOdrz = zakonczone ? 100 * odrzucone.length / zakonczone : 0;
+  const utkniete = wObiegu.filter(poTerminie);
+  const platnosci = wObiegu.filter(platnoscBlisko);
+  const wgMpk = state.mpk.map(m => ({ m, suma: F.filter(f => f.mpk === m.id && f.status !== 'Odrzucona').reduce((s, f) => s + brutto(f), 0) }));
+  const max = Math.max(1, ...wgMpk.map(x => x.suma));
+
+  return `<div class="kpis">
+      <div class="kpi"><div class="muted">W obiegu</div><div class="v">${wObiegu.length}</div></div>
+      <div class="kpi"><div class="muted">Utknęły (&gt; ${state.cfg.sla} dni)</div><div class="v" style="color:var(--bad)">${utkniete.length}</div></div>
+      <div class="kpi"><div class="muted">Płatność w ciągu ${state.cfg.ostrz} dni / po terminie</div><div class="v" style="color:var(--warn)">${platnosci.length}</div></div>
+      <div class="kpi"><div class="muted">Średni czas obiegu</div><div class="v">${sredniCzas.toFixed(1)} dni</div></div>
+      <div class="kpi"><div class="muted">Odrzucone</div><div class="v">${pctOdrz.toFixed(0)}%</div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h2>Faktury, które utknęły</h2>${tabela(utkniete)}</div>
+    <div class="card"><h2>Zbliżające się i przekroczone terminy płatności</h2>${tabela(platnosci)}</div>
+    <div class="card"><h2>Koszty wg działu (bez odrzuconych)</h2>
+      ${wgMpk.map(x => `<div class="bar-row"><span>${esc(x.m.nazwa)}</span><div class="bar" style="width:${(100 * x.suma / max).toFixed(1)}%"></div><span class="num">${zl(x.suma)}</span></div>`).join('')}
+    </div>`;
+}
+
+function widokMaile() {
+  const lista = state.maile.filter(m => wszystkieMaile || m.do === user).sort((a, b) => b.id - a.id);
+  return `<div class="card"><h2>Powiadomienia e-mail</h2>
+    <p class="note">System wysyła je automatycznie: przy nowym zadaniu, odrzuceniu, zaksięgowaniu, po ${state.cfg.sla} dniach bez decyzji
+      i gdy zbliża się termin płatności. ${SQL ? 'Powiadomienia tworzą procedury w bazie i zapisują je w tabeli <b>dbo.Powiadomienia</b> (kolejka do wysyłki).'
+      : 'W demo nic nie wychodzi naprawdę – tak wyglądałaby skrzynka odbiorcy.'}</p>
+    <label style="display:flex;gap:8px;align-items:center;color:var(--text);margin:12px 0"><input type="checkbox" id="wszystkieMaile" ${wszystkieMaile ? 'checked' : ''}> Pokaż powiadomienia wszystkich osób</label>
+    ${lista.length ? lista.map(m => `<div class="mail">
+        <div class="meta">${fmt(m.dzien)} · do: <b>${esc(uName(m.do))}</b></div>
+        <div><b>${esc(m.temat)}</b></div>
+        <div>${esc(m.tresc)}</div>
+      </div>`).join('') : '<div class="empty">Brak powiadomień.</div>'}
+  </div>`;
+}
+
+function widokUstawienia() {
+  const c = state.cfg;
+  const opcje = (lista, sel) => lista.map(u => `<option value="${u.id}" ${u.id === sel ? 'selected' : ''}>${esc(u.name)}</option>`).join('');
+  return `<div class="card"><h2>Ustawienia procesu</h2>
+      <p class="note">${SQL ? 'Zmiany zapisują się w tabelach Ustawienia, MPK, Zastepstwa i Dostawcy. ' : ''}W prawdziwym systemie ten panel widzi tylko administrator. Zmiany działają od razu, bez programowania –
+        na tym polega podejście low-code. Zadania w toku od razu trafiają do nowych osób.</p>
+      <div id="msg" class="msg"></div>
+    </div>
+    <div class="card"><h3>Reguły</h3>
+      <div class="grid">
+        <div><label for="cProg">Próg akceptacji dyrektora (zł brutto)</label><input id="cProg" inputmode="decimal" value="${c.prog}"></div>
+        <div><label for="cSla">Przypomnienie po (dniach bez decyzji)</label><input id="cSla" type="number" min="1" value="${c.sla}"></div>
+        <div><label for="cOstrz">Ostrzeżenie o płatności (dni przed terminem)</label><input id="cOstrz" type="number" min="0" value="${c.ostrz}"></div>
+      </div>
+      <div class="row-actions"><button data-act="zapiszReguly">Zapisz reguły</button></div>
+    </div>
+    <div class="card"><h3>Kierownicy działów (MPK)</h3>
+      <div class="table-wrap"><table><tr><th>MPK</th><th>Dział</th><th>Zatwierdza</th></tr>
+        ${state.mpk.map(m => `<tr><td>${esc(m.kod)}</td><td>${esc(m.nazwa)}</td><td><select data-mpk="${m.id}">${opcje(decydenci(), m.kier)}</select></td></tr>`).join('')}
+      </table></div>
+    </div>
+    <div class="card"><h3>Zastępstwa</h3>
+      ${state.zastepstwa.length ? `<div class="table-wrap"><table><tr><th>Kto jest nieobecny</th><th>Zastępca</th><th>Od</th><th>Do</th><th></th></tr>
+        ${state.zastepstwa.map((z, i) => `<tr><td>${esc(uName(z.kto))}</td><td>${esc(uName(z.zastepca))}</td><td>${fmt(z.od)}</td><td>${fmt(z.do)}</td>
+          <td><button class="secondary small" data-act="usunZast" data-i="${i}">Usuń</button></td></tr>`).join('')}
+      </table></div>` : '<div class="empty">Brak zastępstw.</div>'}
+      <div class="grid" style="margin-top:12px">
+        <div><label for="zKto">Kto jest nieobecny</label><select id="zKto">${opcje(decydenci())}</select></div>
+        <div><label for="zZast">Zastępca</label><select id="zZast">${opcje(decydenci(), 6)}</select></div>
+        <div><label for="zOd">Od</label><input id="zOd" type="date" value="${isoOf(state.dzien)}"></div>
+        <div><label for="zDo">Do</label><input id="zDo" type="date" value="${isoOf(state.dzien + 7)}"></div>
+      </div>
+      <div class="row-actions"><button data-act="dodajZast">Dodaj zastępstwo</button></div>
+    </div>
+    <div class="card"><h3>Słownik dostawców</h3>
+      <div class="table-wrap"><table><tr><th>Nazwa</th><th>NIP</th></tr>
+        ${state.dostawcy.map(d => `<tr><td>${esc(d.nazwa)}</td><td>${nipFmt(d.nip)}</td></tr>`).join('')}
+      </table></div>
+      <div class="grid" style="margin-top:12px">
+        <div><label for="dNazwa">Nazwa</label><input id="dNazwa"></div>
+        <div><label for="dNip">NIP</label><input id="dNip" placeholder="10 cyfr"></div>
+      </div>
+      <div class="row-actions"><button data-act="dodajDost">Dodaj dostawcę</button></div>
+    </div>`;
+}
+
+/* --- Akcje panelu ustawień --- */
+function zapiszReguly() {
+  const prog = liczba($('#cProg').value), sla = parseInt($('#cSla').value, 10), ostrz = parseInt($('#cOstrz').value, 10);
+  if (!(prog > 0) || !(sla >= 1) || !(ostrz >= 0)) return pokaz('err', 'Podaj poprawne wartości: próg > 0, przypomnienie ≥ 1 dzień, ostrzeżenie ≥ 0 dni.');
+  if (SQL) return wBazie(() => api('ustawienia', { prog, sla, ostrz }),
+    () => `Zapisano w tabeli Ustawienia. Próg: ${zl(state.cfg.prog)}, przypomnienie po ${sla} dn., ostrzeżenie ${ostrz} dn. przed terminem płatności.`);
+  state.cfg = { prog: zaokr(prog), sla, ostrz };
+  sprawdzTerminy(); save(); render();
+  pokaz('ok', `Zapisano. Próg: ${zl(state.cfg.prog)}, przypomnienie po ${sla} dn., ostrzeżenie ${ostrz} dn. przed terminem płatności.`);
+}
+function dodajZastepstwo() {
+  const kto = +$('#zKto').value, zastepca = +$('#zZast').value;
+  const od = isoToDay($('#zOd').value), dO = isoToDay($('#zDo').value);
+  if (kto === zastepca) return pokaz('err', 'Osoba nie może zastępować samej siebie.');
+  if (od === null || dO === null || dO < od) return pokaz('err', 'Podaj poprawny zakres dat (Do ≥ Od).');
+  if (state.zastepstwa.some(z => z.kto === kto && od <= z.do && dO >= z.od)) return pokaz('err', `${esc(uName(kto))} ma już zastępstwo w tym okresie.`);
+  if (SQL) return wBazie(() => api('zastepstwa', { kto, zastepca, od: $('#zOd').value, do: $('#zDo').value }),
+    () => `Dodano zastępstwo w bazie: ${esc(uName(kto))} → ${esc(uName(zastepca))}, od ${fmt(od)} do ${fmt(dO)}.`);
+  zPrzekazaniem(() => state.zastepstwa.push({ kto, zastepca, od, do: dO }));
+  save(); render();
+  pokaz('ok', `Dodano zastępstwo: ${esc(uName(kto))} → ${esc(uName(zastepca))}, od ${fmt(od)} do ${fmt(dO)}.`);
+}
+function dodajDostawce() {
+  const nazwa = $('#dNazwa').value.trim(), nip = $('#dNip').value.replace(/\D/g, '');
+  if (!nazwa) return pokaz('err', 'Podaj nazwę dostawcy.');
+  if (!nipOk(nip)) return pokaz('err', 'Niepoprawny NIP – musi mieć 10 cyfr i poprawną sumę kontrolną.');
+  if (state.dostawcy.some(d => d.nip === nip)) return pokaz('err', 'Dostawca o tym NIP jest już w słowniku.');
+  if (SQL) return wBazie(() => api('dostawcy', { nazwa, nip }), () => `Dodano dostawcę ${esc(nazwa)} do tabeli Dostawcy.`);
+  state.dostawcy.push({ id: Math.max(...state.dostawcy.map(d => d.id)) + 1, nazwa, nip });
+  save(); render();
+  pokaz('ok', `Dodano dostawcę ${esc(nazwa)}.`);
+}
+
+/* =====================================================================
+   Zdarzenia
+   ===================================================================== */
+function liczBrutto() {
+  const n = liczba($('#netto').value), v = liczba($('#vat').value);
+  $('#brutto').value = !isNaN(n) && !isNaN(v) ? zl(n + v) : '';
+}
+
+$('#user').innerHTML = USERS.map(u => `<option value="${u.id}">${esc(u.name)} – ${esc(u.rola)}</option>`).join('');
+$('#btnDay').addEventListener('click', () => {
+  if (SQL) return wBazie(() => api('dzien', {}));          // przesuwa czas w bazie i uruchamia dbo.sp_SprawdzTerminy
+  zPrzekazaniem(() => state.dzien++); sprawdzTerminy(); save(); render();
+});
+$('#btnReset').addEventListener('click', async () => {
+  selected = null;
+  if (SQL) {
+    if (!confirm('Baza ObiegFaktur zostanie utworzona od nowa z danymi testowymi. Kontynuować?')) return;
+    return wBazie(() => api('reset', {}));                // uruchamia od nowa skrypt 03_baza_danych.sql
+  }
+  await pliki.clear(); nowyStan(); render();
+});
+
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-tab]');
+  if (t) { tab = t.dataset.tab; selected = null; render(); return; }
+  const a = e.target.closest('[data-act]');
+  if (a) {
+    const act = a.dataset.act;
+    if (act === 'close') { selected = null; render(); }
+    else if (act === 'ok' || act === 'no') decyzja(+a.dataset.id, act === 'ok');
+    else if (act === 'przyklad') {
+      try {
+        const r = await fetch('przyklady/' + a.dataset.plik);
+        if (!r.ok) throw new Error();
+        await wczytajPdf(await r.arrayBuffer(), a.dataset.plik);
+      } catch (err) {
+        pokaz('err', 'Nie udało się pobrać przykładu. Gdy demo jest otwarte z dysku (dwuklikiem), wybierz plik przyciskiem powyżej – przykłady są w folderze <b>04_demo/przyklady</b>.');
+      }
+    }
+    else if (act === 'dodajZPdf') dodajDostawceZPdf();
+    else if (act === 'otworzPdf') otworzPdf(+a.dataset.id);
+    else if (act === 'eksport') eksportCSV();
+    else if (act === 'zapiszReguly') zapiszReguly();
+    else if (act === 'dodajZast') dodajZastepstwo();
+    else if (act === 'usunZast' && SQL) wBazie(() => api(`zastepstwa/${state.zastepstwa[+a.dataset.i].id}/usun`, {}), () => 'Usunięto zastępstwo z bazy.');
+    else if (act === 'usunZast') { zPrzekazaniem(() => state.zastepstwa.splice(+a.dataset.i, 1)); save(); render(); pokaz('ok', 'Usunięto zastępstwo.'); }
+    else if (act === 'dodajDost') dodajDostawce();
+    return;
+  }
+  const row = e.target.closest('tr[data-id]');
+  if (row) { selected = +row.dataset.id; render(); $('#szczegoly')?.scrollIntoView({ behavior: 'smooth' }); return; }
+  if (e.target.id === 'vat23') {
+    const n = liczba($('#netto').value);
+    if (!isNaN(n)) { $('#vat').value = kwotaTxt(zaokr(n * 0.23)); liczBrutto(); }
+  }
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'user') { user = +t.value; selected = null; tab = 'zadania'; render(); }
+  else if (t.id === 'plik' && t.files[0]) t.files[0].arrayBuffer().then(b => wczytajPdf(b, t.files[0].name));
+  else if (t.dataset.mpk) {
+    const m = state.mpk.find(x => x.id === +t.dataset.mpk);
+    if (SQL) {
+      wBazie(() => api(`mpk/${m.id}`, { kier: +t.value }),
+        () => `Zapisano w tabeli MPK. Faktury działu ${esc(m.nazwa)} zatwierdza teraz: ${esc(uName(+t.value))}.`);
+      return;
+    }
+    zPrzekazaniem(() => { m.kier = +t.value; }); save(); render();
+    pokaz('ok', `Faktury działu ${esc(m.nazwa)} zatwierdza teraz: ${esc(uName(m.kier))}.`);
+  }
+  else if (t.id === 'fs') { filtr.status = t.value; renderLista(); }
+  else if (t.id === 'fm') { filtr.mpk = t.value; renderLista(); }
+  else if (t.id === 'wszystkieMaile') { wszystkieMaile = t.checked; render(); }
+  if (t.classList.contains('auto')) t.classList.remove('auto');
+});
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'netto' || t.id === 'vat') liczBrutto();
+  if (t.id === 'fq') { filtr.q = t.value; renderLista(); }
+  t.classList?.remove('auto');
+});
+
+// Przeciągnij i upuść PDF
+document.addEventListener('dragover', e => { const d = e.target.closest?.('#drop'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+document.addEventListener('dragleave', e => { const d = e.target.closest?.('#drop'); if (d) d.classList.remove('over'); });
+document.addEventListener('drop', e => {
+  const d = e.target.closest?.('#drop');
+  if (!d) return;
+  e.preventDefault(); d.classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file && /pdf$/i.test(file.name)) file.arrayBuffer().then(b => wczytajPdf(b, file.name));
+  else pokaz('err', 'To nie jest plik PDF.');
+});
+
+/* Start: najpierw próbujemy połączyć się z serwerem i bazą SQL */
+(async () => {
+  if (location.protocol.startsWith('http')) {
+    try { await odswiez(); SQL = true; } catch (e) { SQL = false; }
+  }
+  if (!SQL) {
+    state = load();
+    if (!state || !state.cfg) nowyStan();
+  }
+  const t = $('#tryb');
+  t.className = 'tryb ' + (SQL ? 'sql' : 'lokalny');
+  t.textContent = SQL ? `● SQL Server: ${state.zrodlo.serwer} / ${state.zrodlo.baza}` : '● Tryb demo: dane w przeglądarce';
+  t.title = SQL ? 'Każda zmiana zapisuje się w bazie danych. Możesz to sprawdzić w SSMS.'
+                : 'Uruchom serwer z folderu 06_serwer, żeby pracować na bazie SQL Server.';
+  render();
+})();
+</script>
+</body>
+</html>
